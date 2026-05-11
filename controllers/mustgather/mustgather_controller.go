@@ -176,11 +176,12 @@ func (r *MustGatherReconciler) Reconcile(ctx context.Context, request reconcile.
 			}, userSecret)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					log.Error(err, fmt.Sprintf("the secret %s was not found in namespace %s", secretName, instance.Namespace))
-					return reconcile.Result{}, nil
+					errMsg := fmt.Errorf("secret %s not found in namespace %s: Please create the secret referenced by caseManagementAccountSecretRef", secretName, instance.Namespace)
+					log.Error(err, fmt.Sprintf("the secret was not found: %s", errMsg.Error()))
+					return r.ManageError(ctx, instance, errMsg)
 				}
-				log.Error(err, fmt.Sprintf("Error getting secret (%s)", secretName))
-				return reconcile.Result{Requeue: true}, err
+				log.Error(err, fmt.Sprintf("Error getting secret (%s): %s", secretName, err.Error()))
+				return r.ManageError(ctx, instance, err)
 			}
 		}
 
