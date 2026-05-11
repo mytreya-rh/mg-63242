@@ -484,7 +484,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "reconcile_job_not_found_user_secret_missing_no_requeue",
+			name: "reconcile_job_not_found_user_secret_missing_returns_error_and_updates_cr_status",
 			setupEnv: func(t *testing.T) {
 				t.Setenv("OPERATOR_IMAGE", "img")
 			},
@@ -510,10 +510,18 @@ func TestReconcile(t *testing.T) {
 				}
 				return []client.Object{mg, cv}
 			},
-			interceptors:   func() interceptClient { return interceptClient{} },
-			expectError:    false,
-			expectResult:   reconcile.Result{},
-			postTestChecks: func(t *testing.T, cl client.Client) {},
+			interceptors: func() interceptClient { return interceptClient{} },
+			expectError:  true,
+			expectResult: reconcile.Result{},
+			postTestChecks: func(t *testing.T, cl client.Client) {
+				out := &mustgatherv1alpha1.MustGather{}
+				if err := cl.Get(context.TODO(), types.NamespacedName{Name: "example-mustgather", Namespace: "ns"}, out); err != nil {
+					t.Fatalf("failed to get mustgather after reconcile: %v", err)
+				}
+				if len(out.Status.Conditions) == 0 {
+					t.Fatal("expected CR status conditions to be set when secret is not found, but got none")
+				}
+			},
 		},
 		{
 			name: "reconcile_job_active_updates_status_running",
@@ -920,9 +928,17 @@ func TestReconcile(t *testing.T) {
 					},
 				}
 			},
-			expectError:    true,
-			expectResult:   reconcile.Result{Requeue: true},
-			postTestChecks: func(t *testing.T, cl client.Client) {},
+			expectError:  true,
+			expectResult: reconcile.Result{},
+			postTestChecks: func(t *testing.T, cl client.Client) {
+				out := &mustgatherv1alpha1.MustGather{}
+				if err := cl.Get(context.TODO(), types.NamespacedName{Name: "example-mustgather", Namespace: "ns"}, out); err != nil {
+					t.Fatalf("failed to get mustgather after reconcile: %v", err)
+				}
+				if len(out.Status.Conditions) == 0 {
+					t.Fatal("expected CR status conditions to be set on secret get error, but got none")
+				}
+			},
 		},
 	}
 
