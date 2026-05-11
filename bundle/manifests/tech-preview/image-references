@@ -1,0 +1,13 @@
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: support-log-gather-operator
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/origin-support-log-gather-operator:latest
+  - name: must-gather-rhel9
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/origin-must-gather:latest 

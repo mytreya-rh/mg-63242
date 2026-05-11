@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: must-gather-operator
+  namespace: must-gather-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: must-gather-operator
+  template:
+    metadata:
+      labels:
+        name: must-gather-operator
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: Exists
+            weight: 1
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/infra
+          operator: Exists
+      serviceAccountName: must-gather-operator
+      containers:
+        - name: must-gather-operator
+          # Replace this with the built image name
+          image: quay.io/openshift/origin-must-gather-operator:latest
+          command:
+          - must-gather-operator
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "100m"
+          env:
+            - name: OPERATOR_NAME
+              value: must-gather-operator
+            - name: DEFAULT_MUST_GATHER_IMAGE
+              value: quay.io/openshift/origin-must-gather:latest
+            - name: OPERATOR_IMAGE
+              value: quay.io/openshift/origin-must-gather-operator:latest
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: WATCH_NAMESPACE
+              value: ""

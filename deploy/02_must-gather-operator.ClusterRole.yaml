@@ -1,0 +1,105 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: must-gather-operator
+rules:
+  # cluster version
+  - apiGroups:
+      - "config.openshift.io"
+    resources:
+      - clusterversions
+      - clusterversions/status
+    verbs:
+      - list
+      - get
+  # leader election
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - pods
+    verbs:
+      - "*"
+  # services/finalizers
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - services/finalizers
+    verbs:
+      - "*"
+  # replicasets/deployments
+  - apiGroups:
+      - "apps"
+    resources:
+      - replicasets
+      - deployments
+    verbs:
+      - "get"
+      - "list"
+  # metrics
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - "*"
+  # finalizer
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/finalizers
+    resourceNames:
+      - must-gather-operator
+    verbs:
+      - "update"
+  # operator business logic
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - "mustgathers"
+      - mustgathers/finalizers
+      - mustgathers/status
+    verbs:
+      - "*"
+  - apiGroups:
+      - "batch"
+    resources:
+      - jobs
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - delete
+      - create
+      - list
+      - watch
+  - apiGroups:
+      - "config.openshift.io"
+    resources:
+      - proxies
+    verbs:
+      - get
+      - list
+    resourceNames:
+      - cluster
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
