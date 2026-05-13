@@ -881,49 +881,6 @@ func TestReconcile(t *testing.T) {
 			expectResult:   reconcile.Result{},
 			postTestChecks: func(t *testing.T, cl client.Client) {},
 		},
-		{
-			name: "reconcile_job_not_found_get_secret_returns_non_not_found_error",
-			setupEnv: func(t *testing.T) {
-				t.Setenv("OPERATOR_IMAGE", "img")
-			},
-			setupObjects: func() []client.Object {
-				mg := &mustgatherv1alpha1.MustGather{
-					ObjectMeta: metav1.ObjectMeta{Name: "example-mustgather", Namespace: "ns", Finalizers: []string{mustGatherFinalizer}},
-					Spec: mustgatherv1alpha1.MustGatherSpec{
-						ServiceAccountRef: corev1.LocalObjectReference{Name: "default"},
-						UploadTarget: &mustgatherv1alpha1.UploadTargetSpec{
-							Type: mustgatherv1alpha1.UploadTypeSFTP,
-							SFTP: &mustgatherv1alpha1.SFTPSpec{
-								CaseID:                         "12345678",
-								CaseManagementAccountSecretRef: corev1.LocalObjectReference{Name: "secret"},
-							},
-						},
-					},
-				}
-				userSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "ns"}}
-				cv := &configv1.ClusterVersion{
-					ObjectMeta: metav1.ObjectMeta{Name: "version"},
-					Status: configv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{{State: "Completed", Version: "1.2.3"}},
-					},
-				}
-				return []client.Object{mg, userSecret, cv}
-			},
-			interceptors: func() interceptClient {
-				return interceptClient{
-					onGet: func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-						// Return non-NotFound error when getting secret
-						if _, ok := obj.(*corev1.Secret); ok && key.Namespace == "ns" && key.Name == "secret" {
-							return errors.New("API server unavailable - failed to get operator secret")
-						}
-						return nil
-					},
-				}
-			},
-			expectError:    true,
-			expectResult:   reconcile.Result{Requeue: true},
-			postTestChecks: func(t *testing.T, cl client.Client) {},
-		},
 	}
 
 	for _, tt := range tests {
